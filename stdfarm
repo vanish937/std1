@@ -70,7 +70,7 @@ function updateLabels()
 	end
 
 	if PickedCFrame and WaveUpdates and AllNames and CurrentPriority then
-		PickedCFrame:Set("Picked CFrame: " .. tostring(getEquipped().CFrame))
+		PickedCFrame:Set("Picked CFrame: " .. tostring(CFrame.new(Vector3.new(getEquipped().x, getEquipped().y, getEquipped().z))))
 		WaveUpdates:Set("Saved Updates: " .. getEquipped().UpdateString)
 		CurrentPriority:Set("Current Priority: " .. getEquipped().Priority)
 
@@ -279,7 +279,7 @@ if not Towers then
 							local Teleports = Teleporter:FindFirstChild("Teleports")
 							local Entrance = Teleports:WaitForChild("Entrance") :: Part	
 							
-							Character:MoveTo(Entrance.Position + Entrance.CFrame.LookVector * -2)
+							Character:MoveTo(Entrance.Position + Entrance.CFrame.LookVector * -4)
 							
 							hum:MoveTo(Entrance.Position + Entrance.CFrame.LookVector * 2)
 							task.wait(0.9)
