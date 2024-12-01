@@ -1,0 +1,426 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local InputService = game:GetService("UserInputService")
+local Http = game:GetService("HttpService")
+
+local player = game.Players.LocalPlayer
+local Character = player.Character or player.CharacterAdded:Wait()
+Character = player.Character
+
+local Mouse = player:GetMouse()
+
+local function CreateEquippedConfig(name : string)
+	return {
+		["CFrame"] = nil,
+		["Update"] = {},
+		["UpdateString"] = "",
+		["Priority"] = 0,
+		["name"] = name,
+		["x"] = 0,
+		["y"] = 0,
+		["z"] = 0
+	}
+end
+
+local Config = {
+	["Equipped1"] = {},
+	["Equipped2"] = {},
+	["Equipped3"] = {},
+	["Equipped4"] = {},
+	["Equipped5"] = {}
+}
+
+local AutoSkip = {}
+
+local CONFIG_NAME = "JJKautofarmConfig2.txt"
+
+pcall(function(...) 
+	if isfile(CONFIG_NAME) then
+		local Data = readfile(CONFIG_NAME)
+		Data = Http:JSONDecode(Data)
+		AutoSkip = Data.AutoSkip
+		Config = Data.Config
+	end
+end)
+
+local function saveData()
+	writefile(CONFIG_NAME, tostring(Http:JSONEncode({
+		Config = Config,
+		AutoSkip = AutoSkip
+	})))
+end
+
+local DropdownEquippedName = "Equipped1"
+local CurrentName = "0"
+
+local function getEquipped()
+	return Config[DropdownEquippedName][CurrentName]
+end
+
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "AFK Farm", HidePremium = false, SaveConfig = true, ConfigFolder = "JJKfarmConfig"})
+
+local PickedCFrame
+local WaveUpdates
+local CurrentPriority
+local AllNames
+
+function updateLabels()
+	if not Config[DropdownEquippedName][CurrentName] then
+		Config[DropdownEquippedName][CurrentName] = CreateEquippedConfig(CurrentName)
+	end
+
+	if PickedCFrame and WaveUpdates and AllNames and CurrentPriority then
+		PickedCFrame:Set("Picked CFrame: " .. tostring(getEquipped().CFrame))
+		WaveUpdates:Set("Saved Updates: " .. getEquipped().UpdateString)
+		CurrentPriority:Set("Current Priority: " .. getEquipped().Priority)
+
+		local allnamesString = "All names:"
+		for name, obj in Config[DropdownEquippedName] do
+			allnamesString = allnamesString .. ' "' .. name .. '"'
+		end
+		AllNames:Set(allnamesString)
+	end
+end
+
+local Tab = Window:MakeTab({
+	Name = "Auto Farm",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local AutoSkipTab = Window:MakeTab({
+	Name = "Auto Skip",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+AutoSkipTab:AddTextbox({
+	Name = "Auto Skip when (100,200,400,600)",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		local Update = {}
+		local UpdateString = ""
+
+		for i in string.gmatch(Value, "%d+") do
+			local num = tonumber(i)
+
+			if num then 
+				UpdateString = Update[1] == nil and UpdateString .. num or UpdateString .. ", " .. num
+				table.insert(Update, num)
+			end
+		end
+
+		if Update[1] then
+			AutoSkip = Update
+		end
+	end	  
+})
+
+local ConfigTab = Window:MakeTab({
+	Name = "Config",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+ConfigTab:AddButton({
+	Name = "Save config",
+	Callback = function()
+		saveData()
+	end    
+})
+
+Tab:AddDropdown({
+	Name = "Equipped",
+	Default = "Equipped1",
+	Options = {"Equipped1", "Equipped2", "Equipped3", "Equipped4", "Equipped5"},
+	Callback = function(Value)
+		DropdownEquippedName = Value
+
+		updateLabels()
+	end    
+})
+
+Tab:AddSection({
+	Name = "Name"
+})
+
+AllNames = Tab:AddLabel("All names: ")
+LoadedName = Tab:AddLabel("Loaded name: ")
+
+Tab:AddTextbox({
+	Name = "Load name",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		LoadedName:Set("Loaded name: " .. Value)
+		CurrentName = Value
+
+		updateLabels()
+	end	  
+})
+
+
+Tab:AddTextbox({
+	Name = "Delete name",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		Config[DropdownEquippedName][CurrentName] = nil
+
+		updateLabels()
+	end	  
+})
+
+Tab:AddSection({
+	Name = "CFrame"
+})
+
+PickedCFrame = Tab:AddLabel("Picked CFrame: ")
+
+Tab:AddButton({
+	Name = "Pick CFrame",
+	Callback = function()
+
+		Mouse.Button1Down:Once(function()
+			getEquipped().x = Mouse.Hit.Position.X
+			getEquipped().y = Mouse.Hit.Position.Y
+			getEquipped().z = Mouse.Hit.Position.Z
+			
+			updateLabels()
+		end)
+	end    
+})
+
+Tab:AddSection({
+	Name = "Update"
+})
+
+WaveUpdates = Tab:AddLabel("Saved Updates: ")
+
+Tab:AddTextbox({
+	Name = "Update when (100,200,400,600)",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		local Update = {}
+		local UpdateString = ""
+
+		for i in string.gmatch(Value, "%d+") do
+			local num = tonumber(i)
+
+			if num then 
+				UpdateString = Update[1] == nil and UpdateString .. num or UpdateString .. ", " .. num
+				table.insert(Update, num)
+			end
+		end
+
+		if Update[1] then
+			getEquipped().UpdateString = UpdateString
+			getEquipped().Update = Update
+			updateLabels()
+		end
+	end	  
+})
+
+Tab:AddSection({
+	Name = "Priority"
+})
+
+CurrentPriority = Tab:AddLabel("Current Priority: ")
+
+Tab:AddTextbox({
+	Name = "Current Priority",
+	Default = "1",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		local num = tonumber(Value)
+
+		if num then
+			getEquipped().Priority = Value
+			updateLabels()
+		end
+	end	  
+})
+
+OrionLib:Init()
+
+task.wait(0.1)
+local Info = workspace:WaitForChild("Info") :: Folder
+if not Info then return end
+
+local Towers = workspace:FindFirstChild("Towers")
+if not Towers then
+	local SukunaTeleporters = workspace:WaitForChild("SukunaTeleporters")	
+	
+	local success = false
+	while not success do
+		for _, Teleporter in SukunaTeleporters:GetChildren() do
+			local Billboard = Teleporter:FindFirstChild("Billboard")
+			if Billboard then
+				local Gui = Billboard:FindFirstChild("BillboardGui")
+				if Gui then
+					local PlayerCount = Gui:FindFirstChild("PlayerCount") :: TextLabel
+					if PlayerCount then
+						if PlayerCount.Text == "0/4" then
+							success = true
+							
+							--[[local hrp = Character:WaitForChild("HumanoidRootPart")
+							hrp.Anchored = true
+							
+							for _, part in Character:GetChildren() do
+								if part:IsA("Part") or part:IsA("BasePart") then
+									part.CanCollide = false
+								end
+							end]]	
+							
+							local hum = Character:WaitForChild("Humanoid") :: Humanoid
+							
+							local Teleports = Teleporter:FindFirstChild("Teleports")
+							local Entrance = Teleports:WaitForChild("Entrance") :: Part	
+							
+							Character:MoveTo(Entrance.Position + Entrance.CFrame.LookVector * -2)
+							
+							hum:MoveTo(Entrance.Position + Entrance.CFrame.LookVector * 2)
+							task.wait(0.9)
+							
+							local ChooseStage = {
+								[1] = Teleporter,
+								[2] = false
+							}
+							
+							game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Teleporters"):WaitForChild("ChooseStage"):FireServer(unpack(ChooseStage))
+							
+							local Start = {
+								[1] = Teleporter
+							}
+
+							game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SukunaTeleporters"):WaitForChild("Start"):FireServer(unpack(Start))
+							
+							break
+						end
+					end
+				end
+			end
+		end
+		
+		task.wait(0.3)
+	end
+	
+	return
+end
+
+local localData = {
+	["Equipped1"] = {},
+	["Equipped2"] = {},
+	["Equipped3"] = {},
+	["Equipped4"] = {},
+	["Equipped5"] = {}
+}
+
+local Functions = ReplicatedStorage:WaitForChild("Functions")
+
+local SpawnNewTower = Functions:WaitForChild("SpawnNewTower") :: RemoteFunction
+local RequestTower = Functions:WaitForChild("RequestTower") :: RemoteFunction
+local UpgradeTower = Functions:WaitForChild("UpgradeTower") :: RemoteFunction
+local Skip = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("VoteSkip")
+
+local State = require(ReplicatedStorage.Client.State)
+
+function getEquippedInstance(equipped : string) : StringValue?
+	return player:FindFirstChild(equipped)
+end
+
+function createTower(equipped : string, name : string, cframe : CFrame)
+	local equippedInstance = getEquippedInstance(equipped)
+	if not equippedInstance then return end
+	local equippedGUID = equippedInstance.Value
+
+	local towerName = State.GetData().Towers[equippedGUID].Name
+	local request = RequestTower:InvokeServer(towerName)
+	local spawned = SpawnNewTower:InvokeServer(equippedGUID, cframe)
+
+	task.delay(1, function()
+		if spawned then
+			local params = OverlapParams.new()
+			params.FilterType = Enum.RaycastFilterType.Whitelist
+			params.FilterDescendantsInstances = {workspace.Towers}
+			local blocks = workspace:GetPartBoundsInRadius(cframe.Position, 2.5, params)
+
+			local char
+			for _, obj : Instance in blocks do
+				local parent = obj.Parent
+				if parent:IsA("Model") and parent:FindFirstChildOfClass("Humanoid") then
+					local success = true
+
+					for _, tChar : Model in localData[equipped] do
+						if parent == tChar then
+							success = false
+						end
+					end
+
+					if success then
+						char = parent
+						break
+					end
+				end
+			end
+
+			if char then
+				localData[equipped][name] = char
+			end
+		end
+	end)
+end
+
+function updateTower(equipped : string, name : string, cframe : CFrame)
+	local data = localData[equipped][name]
+
+	if not data then
+		data = createTower(equipped, name, cframe)
+	else
+		UpgradeTower:InvokeServer(data)
+	end
+end
+
+function timerChanged(timerValue : number)
+
+	for equippedName, names in Config do
+
+		for name, obj in names do
+			if table.find(obj.Update, timerValue) then
+				task.spawn(function()
+					updateTower(equippedName, obj.name, CFrame.new(Vector3.new(obj.x, obj.y, obj.z)))
+				end)
+			end
+		end
+	end
+	
+	if table.find(AutoSkip, timerValue) then
+		Skip:FireServer()
+	end
+
+end
+
+local Timer = Info:WaitForChild("Time").Timer :: StringValue
+
+local timeHelper = {
+	["1"] = 3600,
+	["2"] = 60,
+	["3"] = 1
+}
+
+Timer.Changed:Connect(function(value)
+	local seconds = 0
+	local matched = string.gmatch(value, "%d+")
+
+	for i = 1,3, 1 do
+		local num = matched()
+
+		if num then
+			seconds += timeHelper[tostring(i)] * num
+		end
+	end
+
+	timerChanged(seconds)
+end)
