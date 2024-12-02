@@ -85,13 +85,13 @@ end
 
 local Tab = Window:MakeTab({
 	Name = "Auto Farm",
-	Icon = "rbxassetid://4483345998",
+	Icon = "",
 	PremiumOnly = false
 })
 
 local AutoSkipTab = Window:MakeTab({
 	Name = "Auto Skip",
-	Icon = "rbxassetid://4483345998",
+	Icon = "",
 	PremiumOnly = false
 })
 
@@ -120,7 +120,7 @@ AutoSkipTab:AddTextbox({
 
 local ConfigTab = Window:MakeTab({
 	Name = "Config",
-	Icon = "rbxassetid://4483345998",
+	Icon = "",
 	PremiumOnly = false
 })
 
