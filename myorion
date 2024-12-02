@@ -30,6 +30,7 @@ local OrionLib = {
 local Icons = {}
 
 local Success, Response = pcall(function()
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("")).icons
 end)
 
 if not Success then
