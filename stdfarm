@@ -57,7 +57,6 @@ local function getEquipped()
 end
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/vanish937/std1/refs/heads/main/myorion')))()
-task.wait(2)
 local Window = OrionLib:MakeWindow({Name = "AFK Farm", HidePremium = false, SaveConfig = true, ConfigFolder = "JJKfarmConfig"})
 
 local PickedCFrame
