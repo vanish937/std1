@@ -11,8 +11,8 @@ local Mouse = player:GetMouse()
 local function CreateEquippedConfig(name : string)
 	return {
 		["CFrame"] = nil,
-		["Update"] = {},
-		["UpdateString"] = "",
+		["UpdateWave"] = {},
+		["UpdateMoney"] = {},
 		["Priority"] = 0,
 		["name"] = name,
 		["x"] = 0,
@@ -29,9 +29,12 @@ local Config = {
 	["Equipped5"] = {}
 }
 
-local AutoSkip = {}
+local AutoSkip = {
+	["Enable"] = {},
+	["Disable"] = {}
+}
 
-local CONFIG_NAME = "JJKautofarmConfig2.txt"
+local CONFIG_NAME = "JJKautofarmConfig_1.txt"
 
 pcall(function(...) 
 	if isfile(CONFIG_NAME) then
@@ -71,8 +74,13 @@ function updateLabels()
 
 	if PickedCFrame and WaveUpdates and AllNames and CurrentPriority then
 		PickedCFrame:Set("Picked CFrame: " .. tostring(CFrame.new(Vector3.new(getEquipped().x, getEquipped().y, getEquipped().z))))
-		WaveUpdates:Set("Saved Updates: " .. getEquipped().UpdateString)
 		CurrentPriority:Set("Current Priority: " .. getEquipped().Priority)
+		
+		local UpdateSelected = "Saved Updates:"
+		for _, eqq in getEquipped().UpdateWave do UpdateSelected = UpdateSelected .. ' "' .. eqq .. '"' end
+		UpdateSelected = UpdateSelected .. " /"
+		for _, eqq in getEquipped().UpdateMoney do UpdateSelected = UpdateSelected .. ' "' .. eqq .. '"' end
+		WaveUpdates:Set(UpdateSelected)
 
 		local allnamesString = "All names:"
 		for name, obj in Config[DropdownEquippedName] do
@@ -84,18 +92,18 @@ end
 
 local Tab = Window:MakeTab({
 	Name = "Auto Farm",
-	Icon = "",
+	Icon = "rbxassetid://4483345998",
 	PremiumOnly = false
 })
 
 local AutoSkipTab = Window:MakeTab({
 	Name = "Auto Skip",
-	Icon = "",
+	Icon = "rbxassetid://4483345998",
 	PremiumOnly = false
 })
 
 AutoSkipTab:AddTextbox({
-	Name = "Auto Skip when (100,200,400,600)",
+	Name = "Auto Skip Enable when",
 	Default = "",
 	TextDisappear = true,
 	Callback = function(Value : string)
@@ -112,14 +120,37 @@ AutoSkipTab:AddTextbox({
 		end
 
 		if Update[1] then
-			AutoSkip = Update
+			AutoSkip.Enable = Update
+		end
+	end	  
+})
+
+AutoSkipTab:AddTextbox({
+	Name = "Auto Skip Disable when",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		local Update = {}
+		local UpdateString = ""
+
+		for i in string.gmatch(Value, "%d+") do
+			local num = tonumber(i)
+
+			if num then 
+				UpdateString = Update[1] == nil and UpdateString .. num or UpdateString .. ", " .. num
+				table.insert(Update, num)
+			end
+		end
+
+		if Update[1] then
+			AutoSkip.Disable = Update
 		end
 	end	  
 })
 
 local ConfigTab = Window:MakeTab({
 	Name = "Config",
-	Icon = "",
+	Icon = "rbxassetid://4483345998",
 	PremiumOnly = false
 })
 
@@ -199,31 +230,50 @@ Tab:AddSection({
 WaveUpdates = Tab:AddLabel("Saved Updates: ")
 
 Tab:AddTextbox({
-	Name = "Update when (100,200,400,600)",
+	Name = "Update when WAVES",
 	Default = "",
 	TextDisappear = true,
 	Callback = function(Value : string)
 		local Update = {}
-		local UpdateString = ""
 
 		for i in string.gmatch(Value, "%d+") do
 			local num = tonumber(i)
 
 			if num then 
-				UpdateString = Update[1] == nil and UpdateString .. num or UpdateString .. ", " .. num
 				table.insert(Update, num)
 			end
 		end
 
 		if Update[1] then
-			getEquipped().UpdateString = UpdateString
-			getEquipped().Update = Update
+			getEquipped().UpdateWave = Update
 			updateLabels()
 		end
 	end	  
 })
 
-Tab:AddSection({
+Tab:AddTextbox({
+	Name = "Update when MONEY",
+	Default = "",
+	TextDisappear = true,
+	Callback = function(Value : string)
+		local Update = {}
+
+		for i in string.gmatch(Value, "%d+") do
+			local num = tonumber(i)
+
+			if num then 
+				table.insert(Update, num)
+			end
+		end
+
+		if Update[1] then
+			getEquipped().UpdateMoney = Update
+			updateLabels()
+		end
+	end	  
+})
+
+--[[Tab:AddSection({
 	Name = "Priority"
 })
 
@@ -241,7 +291,7 @@ Tab:AddTextbox({
 			updateLabels()
 		end
 	end	  
-})
+})]]
 
 OrionLib:Init()
 
@@ -324,6 +374,9 @@ local SpawnNewTower = Functions:WaitForChild("SpawnNewTower") :: RemoteFunction
 local RequestTower = Functions:WaitForChild("RequestTower") :: RemoteFunction
 local UpgradeTower = Functions:WaitForChild("UpgradeTower") :: RemoteFunction
 local Skip = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("VoteSkip")
+local AutoSkipRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("AutoSkip") :: RemoteEvent
+
+local AutoSkipActive = false
 
 local State = require(ReplicatedStorage.Client.State)
 
@@ -384,25 +437,41 @@ function updateTower(equipped : string, name : string, cframe : CFrame)
 end
 
 function timerChanged(timerValue : number)
-
-	for equippedName, names in Config do
-
-		for name, obj in names do
-			if table.find(obj.Update, timerValue) then
-				task.spawn(function()
-					updateTower(equippedName, obj.name, CFrame.new(Vector3.new(obj.x, obj.y, obj.z)))
-				end)
-			end
-		end
+	
+	if table.find(AutoSkip.Enable, timerValue) then
+		AutoSkipActive = true
 	end
 	
-	if table.find(AutoSkip, timerValue) then
-		Skip:FireServer()
+	if table.find(AutoSkip.Disable, timerValue) then
+		AutoSkipActive = false
 	end
 
 end
 
 local Timer = Info:WaitForChild("Time").Timer :: StringValue
+local Money = player:WaitForChild("Gold") :: NumberValue
+local currWave = workspace.Info.WavesBeaten :: NumberValue
+
+function moneyChanged(money : number)
+	for equippedName, names in Config do
+
+		for name, obj in names do
+			task.spawn(function()
+				for i = 1, #obj.UpdateMoney, 1 do
+					local updateMoney = obj.UpdateMoney[i]
+					if updateMoney == money then
+						local updateWave = obj.UpdateWave[i]
+						if updateWave == -1 or updateWave == currWave.Value or not updateWave then
+							updateTower(equippedName, name, CFrame.new(Vector3.new(obj.x, obj.y, obj.z)))
+							break
+						end
+					end
+				end
+			end)
+		end
+		
+	end
+end
 
 local timeHelper = {
 	["1"] = 3600,
@@ -423,4 +492,16 @@ Timer.Changed:Connect(function(value)
 	end
 
 	timerChanged(seconds)
+end)
+
+Money.Changed:Connect(function(value)
+	local matched = tonumber(value)
+	
+	moneyChanged(value)
+end)
+
+AutoSkipRemote.OnClientEvent:Connect(function()
+	if AutoSkipActive then
+		Skip:FireServer()
+	end
 end)
