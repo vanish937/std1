@@ -72,7 +72,7 @@ function updateLabels()
 		Config[DropdownEquippedName][CurrentName] = CreateEquippedConfig(CurrentName)
 	end
 
-	if PickedCFrame and WaveUpdates and AllNames and CurrentPriority then
+	if PickedCFrame and WaveUpdates and AllNames then
 		PickedCFrame:Set("Picked CFrame: " .. tostring(CFrame.new(Vector3.new(getEquipped().x, getEquipped().y, getEquipped().z))))
 		CurrentPriority:Set("Current Priority: " .. getEquipped().Priority)
 		
